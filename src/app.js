@@ -14,7 +14,8 @@ app.use(express.static('public'))
 app.use(cookieParser())
 
 //* Routes import
-const userRouter = require('./routes/user.routes')
+const userRouter = require('./routes/user.routes');
+const upload = require('./middlewares/multer.middleware');
 
 //* Routes declare
 app.use('/api/v1/users', userRouter)

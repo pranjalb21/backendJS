@@ -4,7 +4,7 @@ const upload = require("../middlewares/multer.middleware");
 
 const router = express.Router();
 
-router.get("/register",
+router.post("/register",
   upload.fields([
     {
       name: "avatar",
