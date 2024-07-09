@@ -49,16 +49,19 @@ const userSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
+//* Method for encrypt password before saving it to database using bcrypt
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next();
     this.password = await bcrypt.hash(this.password, 10);
     next();
 })
 
+//* Method for validation if user provided password and encrypted password is same
 userSchema.methods.isPasswordValid = async function (password) {
     return await bcrypt.compare(password, this.password);
 }
 
+//* Method for generating accessToken
 userSchema.methods.generateAccessToken = async function () {
     return await jwt.sign(
         {
@@ -73,7 +76,9 @@ userSchema.methods.generateAccessToken = async function () {
         }
     )
 }
-userSchema.methods.generateARefreshToken = async function () {
+
+//* Method for generating refreshToken
+userSchema.methods.generateRefreshToken = async function () {
     return await jwt.sign(
         {
             _id: this._id
@@ -84,5 +89,6 @@ userSchema.methods.generateARefreshToken = async function () {
         }
     )
 }
+
 const User = mongoose.model('User', userSchema);
 module.exports = User;
