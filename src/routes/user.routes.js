@@ -3,6 +3,7 @@ const {
     registerUser,
     loginUser,
     logoutUser,
+    refreshAccessToken,
 } = require("../controllers/user.controller");
 const upload = require("../middlewares/multer.middleware");
 const verifyJwt = require("../middlewares/auth.middleware");
@@ -27,6 +28,7 @@ router
     .post("/login", loginUser)
 
     //* Secured routes
-    .post("/logout", verifyJwt, logoutUser);
+    .post("/logout", verifyJwt, logoutUser)
+    .post("/generate-token", refreshAccessToken);
 
 module.exports = router;

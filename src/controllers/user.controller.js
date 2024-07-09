@@ -3,6 +3,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const uploadOnCoudinary = require("../utils/Cloudinary");
+const jwt = require("jsonwebtoken");
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -149,7 +150,52 @@ const logoutUser = asyncHandler(async (req, res) => {
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, logoutUser, "Logout successfull."));
+        .json(new ApiResponse(200, "Logout successfull."));
 });
 
-module.exports = { registerUser, loginUser, logoutUser };
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    try {
+        const incomingRefreshToken =
+            req.cookies?.refreshToken || req.body.refreshToken;
+    
+        if (!incomingRefreshToken) throw new ApiError(401, "Token not found.");
+    
+        const decodedToken = await jwt.verify(
+            incomingRefreshToken,
+            process.env.REFRESH_TOKEN_SECRET
+        );
+    
+        const user = await User.findById(decodedToken?._id).select(
+            "-password -refreshToken"
+        );
+        if (!user) throw new ApiError(401, "Invalid refresh token.");
+    
+        if (user?.refreshToken !== incomingRefreshToken)
+            throw new ApiError(401, "Invalid token.");
+    
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+            user._id
+        );
+    
+        const options = {
+            httpOnly: true,
+            secure: true,
+        };
+    
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(
+                new ApiResponse(
+                    200,
+                    { user, accessToken },
+                    "Access token refreshed"
+                )
+            );
+    } catch (error) {
+        throw new ApiError(400, "Invalid token.")
+    }
+});
+
+module.exports = { registerUser, loginUser, logoutUser, refreshAccessToken };
