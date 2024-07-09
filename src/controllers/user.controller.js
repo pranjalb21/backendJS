@@ -7,8 +7,8 @@ const uploadOnCoudinary = require("../utils/Cloudinary");
 const generateAccessAndRefreshToken = async (userId) => {
     try {
         const user = await User.findById(userId);
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
+        const accessToken = await user.generateAccessToken();
+        const refreshToken = await user.generateRefreshToken();
 
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
@@ -89,17 +89,21 @@ const loginUser = asyncHandler(async (req, res) => {
     //* Destructure the username and the password from req body
     const { userName, email, password } = req.body;
 
-    //* Validate if inputs are non empty
-    if ((!userName || !email) && !password)
-        throw new ApiError(400, "All fields are required.");
+    //console.log(userName, email, password);
 
+    //* Validate if inputs are non empty
+    if (!(userName || email) || !password) {
+        throw new ApiError(400, "All fields are required.");
+    }
     //* Check if user exists in database or not
     const user = await User.findOne({ $or: [{ userName }, { email }] });
     if (!user) throw new ApiError(404, `User doesn't exist.`);
 
     //* Validate if the password matches with the user name stored in the database
-    const isPasswordValid = await user.isPasswordValid(password);
+    const isPasswordValid = await user.isPasswordValid(password.toString());
     if (!isPasswordValid) throw new ApiError(401, "Invalid credentials. ");
+
+    //* Generate tokens using generateAccessAndRefreshToken function
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
         user._id
     );
@@ -128,9 +132,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     //* Delete refreshToken from database
-    await User.findByIdAndUpdate(req.user._id, {
-        $set: { refreshToken: undefined },
-    });
+    const logoutUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { refreshToken: null },
+        },
+        { new: true }
+    );
 
     //* Clear cookies and logout
     const options = {
@@ -141,7 +149,7 @@ const logoutUser = asyncHandler(async (req, res) => {
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, {}, "Logout successfull."));
+        .json(new ApiResponse(200, logoutUser, "Logout successfull."));
 });
 
 module.exports = { registerUser, loginUser, logoutUser };
