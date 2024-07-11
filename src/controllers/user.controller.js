@@ -157,31 +157,30 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
         const incomingRefreshToken =
             req.cookies?.refreshToken || req.body.refreshToken;
-    
+
         if (!incomingRefreshToken) throw new ApiError(401, "Token not found.");
-    
+
         const decodedToken = await jwt.verify(
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         );
-    
+
         const user = await User.findById(decodedToken?._id).select(
             "-password -refreshToken"
         );
         if (!user) throw new ApiError(401, "Invalid refresh token.");
-    
+
         if (user?.refreshToken !== incomingRefreshToken)
             throw new ApiError(401, "Invalid token.");
-    
-        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-            user._id
-        );
-    
+
+        const { accessToken, refreshToken } =
+            await generateAccessAndRefreshToken(user._id);
+
         const options = {
             httpOnly: true,
             secure: true,
         };
-    
+
         return res
             .status(200)
             .cookie("accessToken", accessToken, options)
@@ -194,8 +193,80 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                 )
             );
     } catch (error) {
-        throw new ApiError(400, "Invalid token.")
+        throw new ApiError(400, "Invalid token.");
     }
 });
 
-module.exports = { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    //* Get old, new and confirm password from request body
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+
+    //* Fetch user details from req user attribute(Added by auth middleware)
+    const user = await User.findById(req.user?._id);
+
+    //* Check if old password and the password of user is same or not
+    const isPasswordValid = await user.isPasswordValid(oldPassword);
+    if (!isPasswordValid) throw new ApiError(400, "Old password is not valid.");
+
+    //* Validate if new password and the confirm password are same or not
+    if (newPassword !== confirmPassword)
+        throw new ApiError(
+            400,
+            "New password and confirm password do not match."
+        );
+
+    //* Update new password into database
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, {}, "Password has been changed successfully.")
+        );
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    //* Get user id from req user attribute
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, req.user, "Current user fetched successfully.")
+        );
+});
+
+const userAccountUpdate = asyncHandler(async (req, res) => {
+    //* Get details of the fields needed to be changed
+    const { fullName, email } = req.body;
+
+    if (!fullName || !email) {
+        throw new ApiError(400, "All fields are required.");
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                email
+            }
+        },
+        {
+            new: true,
+        }
+    ).select("-password -refreshToken");
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "Account has been updated."));
+});
+
+module.exports = {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    userAccountUpdate
+};
