@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Subscription = require("../models/subscription.model");
 const User = require("../models/user.model");
 const { subscribe } = require("../routes/user.routes");
@@ -237,7 +238,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         );
 });
 
-const userAccountUpdate = asyncHandler(async (req, res) => {
+const updateUserAccount = asyncHandler(async (req, res) => {
     //* Get details of the fields needed to be changed
     const { fullName, email } = req.body;
 
@@ -420,8 +421,7 @@ const subscribeChannel = asyncHandler(async (req, res) => {
         channel,
         subscriber: req.user?._id,
     });
-    if (!checkIfSubscribed)
-        throw new ApiError(400, "Already subscribed.");
+    if (!checkIfSubscribed) throw new ApiError(400, "Already subscribed.");
 
     //* Insert a new record of subscription
     const result = await Subscription.create({
@@ -452,15 +452,13 @@ const unsubscribeChannel = asyncHandler(async (req, res) => {
         channel,
         subscriber: req.user?._id,
     });
-    if (!isSubscribed)
-        throw new ApiError(400, "Channel is not subscribed.");
+    if (!isSubscribed) throw new ApiError(400, "Channel is not subscribed.");
 
     //* Delete subscribe document from Database
     const unsubscribeResult = await Subscription.findByIdAndDelete(
         isSubscribed._id
     );
-    if (!unsubscribeResult)
-        throw new ApiError(400, "Channel not found.");
+    if (!unsubscribeResult) throw new ApiError(400, "Channel not found.");
 
     return res
         .status(200)
@@ -473,6 +471,60 @@ const unsubscribeChannel = asyncHandler(async (req, res) => {
         );
 });
 
+const getUserWatchHistory = asyncHandler(async (req, res) => {
+    const userWatchHistory = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id),
+            },
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        useName: 1,
+                                        fullName: 1,
+                                        avatar: 1,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner",
+                            },
+                        },
+                    },
+                ],
+            },
+        },
+    ]);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                userWatchHistory[0].watchHistory,
+                "Watch history fetched successfully."
+            )
+        );
+});
+
 module.exports = {
     registerUser,
     loginUser,
@@ -480,10 +532,11 @@ module.exports = {
     refreshAccessToken,
     changeCurrentPassword,
     getCurrentUser,
-    userAccountUpdate,
+    updateUserAccount,
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
     subscribeChannel,
     unsubscribeChannel,
+    getUserWatchHistory,
 };
