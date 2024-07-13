@@ -403,7 +403,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                channel,
+                channel[0],
                 "Channel has been fetched successfully."
             )
         );
