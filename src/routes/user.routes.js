@@ -4,6 +4,8 @@ const {
     loginUser,
     logoutUser,
     refreshAccessToken,
+    getUserChannelProfile,
+    subscribeChannel,
 } = require("../controllers/user.controller");
 const upload = require("../middlewares/multer.middleware");
 const verifyJwt = require("../middlewares/auth.middleware");
@@ -29,6 +31,8 @@ router
 
     //* Secured routes
     .post("/logout", verifyJwt, logoutUser)
+    .get("/getUserChannelProfile/:username", verifyJwt, getUserChannelProfile)
+    .post("/subscribe", verifyJwt, subscribeChannel)
     .post("/generate-token", refreshAccessToken);
 
 module.exports = router;

@@ -1,4 +1,6 @@
+const Subscription = require("../models/subscription.model");
 const User = require("../models/user.model");
+const { subscribe } = require("../routes/user.routes");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
@@ -331,6 +333,114 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         );
 });
 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    //* Get channel name from request params attribute
+    const { username } = req.params;
+    console.log(username);
+    if (username === undefined || !username.trim())
+        throw new ApiError(400, "No channel found.");
+
+    //* Get subscriber, subscribedTo, isSubscribed and
+    //* rest of the required value from Database using Aggregate function
+    const channel = await User.aggregate([
+        {
+            $match: {
+                userName: username.toLowerCase(),
+            },
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers",
+            },
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribedTo",
+            },
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers",
+                },
+                subscribedChannelCount: {
+                    $size: "$subscribedTo",
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false,
+                    },
+                },
+            },
+        },
+        {
+            $project: {
+                userName: 1,
+                fullName: 1,
+                email: 1,
+                coverImage: 1,
+                avatar: 1,
+                subscribersCount: 1,
+                subscribedChannelCount: 1,
+                isSubscribed: 1,
+            },
+        },
+    ]);
+
+    //* Check if Channel data is found or not
+    if (!channel?.length) throw new ApiError(404, "No channel found.");
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                channel,
+                "Channel has been fetched successfully."
+            )
+        );
+});
+
+const subscribeChannel = asyncHandler(async (req, res) => {
+    //* Get channel id from request body attribute and perform sanity check
+    const { channel } = req.body;
+    if (channel === undefined || !channel)
+        throw new ApiError(404, "Channel not found.");
+
+    //* Check if user is already subscribed to this channel or not
+    const checkIfSubscribed = await Subscription.find({
+        channel,
+        subscriber: req.user?._id,
+    });
+    if (checkIfSubscribed.length > 0)
+        throw new ApiError(400, "Already subscribed.");
+
+    //* Insert a new record of subscription
+    const result = await Subscription.create({
+        subscriber: req.user?._id,
+        channel,
+    });
+
+    //* Check if subscription is successfull or not
+    if (!result)
+        throw new ApiError(
+            400,
+            "Subscription not successful. Please try again."
+        );
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, result, "Subscribed successfully."));
+});
+
 module.exports = {
     registerUser,
     loginUser,
@@ -340,5 +450,7 @@ module.exports = {
     getCurrentUser,
     userAccountUpdate,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    subscribeChannel,
 };

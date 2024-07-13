@@ -1,14 +1,14 @@
-const {Schema} = require("mongoose");
+const mongoose= require("mongoose");
 
-const subscriptionSchema = Schema(
+const subscriptionSchema = mongoose.Schema(
     {
         subscriber: {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref:"User",
             required: true,
         },
         channel: {
-            type: Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
         },
