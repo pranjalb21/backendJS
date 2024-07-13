@@ -5,8 +5,6 @@ const {
     logoutUser,
     refreshAccessToken,
     getUserChannelProfile,
-    subscribeChannel,
-    unsubscribeChannel,
     changeCurrentPassword,
     getCurrentUser,
     updateUserAccount,
@@ -44,11 +42,7 @@ router
     .get("/watch-history", verifyJwt, getUserWatchHistory)
 
     .post("/logout", verifyJwt, logoutUser)
-    .post("/subscribe", verifyJwt, subscribeChannel)
-    .post("/unsubscribe", verifyJwt, unsubscribeChannel)
     .post("/generate-token", refreshAccessToken)
-    .post("/subscribe", verifyJwt, subscribeChannel)
-    .post("/unsubscribe", verifyJwt, unsubscribeChannel)
 
     .patch("/change-password", verifyJwt, changeCurrentPassword)
     .patch("/update/account", verifyJwt, updateUserAccount)
