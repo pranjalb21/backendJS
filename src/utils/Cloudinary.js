@@ -28,4 +28,17 @@ const uploadOnCoudinary = async (localFilePath) => {
     }
 };
 
-module.exports = uploadOnCoudinary;
+const deleteFromCloudinary = async (publicId,type) => {
+    //* Delete files from cloudinary using public id
+    try {
+        if (!publicId) return null;
+        await cloudinary.v2.api.delete_resources(
+            [publicId],
+            { type: "upload", resource_type: type }
+        );
+    } catch (error) {
+        return null;
+    }
+};
+
+module.exports = { uploadOnCoudinary, deleteFromCloudinary };

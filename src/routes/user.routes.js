@@ -34,7 +34,7 @@ router
     )
     .post("/login", loginUser)
 
-    .get('/refresh-token', refreshAccessToken)
+    .post('/refresh-token', refreshAccessToken)
 
     //? Secured routes
     .get("/current", verifyJwt, getCurrentUser)
@@ -44,7 +44,7 @@ router
     .post("/logout", verifyJwt, logoutUser)
     .post("/generate-token", refreshAccessToken)
 
-    .patch("/change-password", verifyJwt, changeCurrentPassword)
+    .patch("/update/password", verifyJwt, changeCurrentPassword)
     .patch("/update/account", verifyJwt, updateUserAccount)
     .patch(
         "/update/avatar",

@@ -14,7 +14,8 @@ const subscribeChannel = asyncHandler(async (req, res) => {
         channel,
         subscriber: req.user?._id,
     });
-    if (!checkIfSubscribed) throw new ApiError(400, "Already subscribed.");
+    if (checkIfSubscribed.length > 0)
+        throw new ApiError(400, "Already subscribed.");
 
     //* Insert a new record of subscription
     const result = await Subscription.create({

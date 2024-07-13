@@ -5,7 +5,10 @@ const { subscribe } = require("../routes/user.routes");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
-const uploadOnCoudinary = require("../utils/Cloudinary");
+const {
+    uploadOnCoudinary,
+    deleteFromCloudinary,
+} = require("../utils/Cloudinary");
 const jwt = require("jsonwebtoken");
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -139,7 +142,10 @@ const logoutUser = asyncHandler(async (req, res) => {
     const logoutUser = await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: null },
+            //* $set: { refreshToken: null }, //* This will set null
+            $unset: {
+                refreshToken: 1, //* This will remove the value
+            },
         },
         { new: true }
     );
@@ -158,27 +164,28 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
+        //* Get refresh toke from cookies or body and sanity check
         const incomingRefreshToken =
             req.cookies?.refreshToken || req.body.refreshToken;
-
         if (!incomingRefreshToken) throw new ApiError(401, "Token not found.");
 
+        //* Verify if token is valid or not
         const decodedToken = await jwt.verify(
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         );
-
-        const user = await User.findById(decodedToken?._id).select(
-            "-password -refreshToken"
-        );
+        const user = await User.findById(decodedToken?._id).select("-password");
         if (!user) throw new ApiError(401, "Invalid refresh token.");
-
-        if (user?.refreshToken !== incomingRefreshToken)
+        if (user.refreshToken !== incomingRefreshToken)
             throw new ApiError(401, "Invalid token.");
 
+        //* Generate new tokens
         const { accessToken, refreshToken } =
             await generateAccessAndRefreshToken(user._id);
 
+        const newUser = await User.findById(user._id).select(
+            "-password -refreshToken"
+        );
         const options = {
             httpOnly: true,
             secure: true,
@@ -191,7 +198,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             .json(
                 new ApiResponse(
                     200,
-                    { user, accessToken },
+                    { newUser, accessToken },
                     "Access token refreshed"
                 )
             );
@@ -204,12 +211,23 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     //* Get old, new and confirm password from request body
     const { oldPassword, newPassword, confirmPassword } = req.body;
 
-    //* Fetch user details from req user attribute(Added by auth middleware)
-    const user = await User.findById(req.user?._id);
+    //* Sanity check on the input fields
+    if (
+        oldPassword === undefined ||
+        newPassword === undefined ||
+        confirmPassword === undefined
+    )
+        throw new ApiError(400, "All fields are required.");
 
-    //* Check if old password and the password of user is same or not
-    const isPasswordValid = await user.isPasswordValid(oldPassword);
-    if (!isPasswordValid) throw new ApiError(400, "Old password is not valid.");
+    if (
+        newPassword.length < process.env.PASSWORD_LENGTH ||
+        confirmPassword.length < process.env.PASSWORD_LENGTH ||
+        oldPassword.length < process.env.PASSWORD_LENGTH
+    )
+        throw new ApiError(
+            400,
+            "Password length should be minimum 5 characters."
+        );
 
     //* Validate if new password and the confirm password are same or not
     if (newPassword !== confirmPassword)
@@ -217,6 +235,13 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
             400,
             "New password and confirm password do not match."
         );
+
+    //* Fetch user details from req user attribute(Added by auth middleware)
+    const user = await User.findById(req.user?._id);
+
+    //* Check if old password and the password of user is same or not
+    const isPasswordValid = await user.isPasswordValid(oldPassword);
+    if (!isPasswordValid) throw new ApiError(400, "Old password is not valid.");
 
     //* Update new password into database
     user.password = newPassword;
@@ -246,6 +271,12 @@ const updateUserAccount = asyncHandler(async (req, res) => {
     if (!fullName || !email) {
         throw new ApiError(400, "All fields are required.");
     }
+
+    //* Check if email already exists or not
+    // const isEmailExists = await User.findOne({email})
+    // console.log(isEmailExists);
+    // if(isEmailExists)
+    //     throw new ApiError(400, "Email already exists.")
 
     //* Update data into database
     const user = await User.findByIdAndUpdate(
@@ -282,6 +313,13 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
             "Something went wrong while avatar file upload."
         );
 
+    //* Delete current cover image from cloudinary
+    const deleteUserCoverImage = await User.findById(req.user?._id);
+    const currentImage = deleteUserCoverImage.avatar
+        .split("/")
+        [deleteUserCoverImage.avatar.split("/").length - 1].split(".")[0];
+    await deleteFromCloudinary(currentImage, "image");
+
     //* Update the image URL into Database
     const user = await User.findByIdAndUpdate(
         req.user?._id,
@@ -314,6 +352,13 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
             "Something went wrong while cover image upload."
         );
 
+    //* Delete current cover image from cloudinary
+    const deleteUserCoverImage = await User.findById(req.user?._id);
+    const currentImage = deleteUserCoverImage.coverImage
+        .split("/")
+        [deleteUserCoverImage.coverImage.split("/").length - 1].split(".")[0];
+    await deleteFromCloudinary(currentImage, "image");
+
     //* Update the image URL into Database
     const user = await User.findByIdAndUpdate(
         req.user?._id,
@@ -337,7 +382,6 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     //* Get channel name from request params attribute
     const { username } = req.params;
-    console.log(username);
     if (username === undefined || !username.trim())
         throw new ApiError(400, "No channel found.");
 
