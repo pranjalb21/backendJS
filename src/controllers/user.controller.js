@@ -396,7 +396,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     ]);
 
     //* Check if Channel data is found or not
-    if (!channel?.length) throw new ApiError(404, "No channel found.");
+    if (!channel) throw new ApiError(404, "No channel found.");
 
     return res
         .status(200)
@@ -420,7 +420,7 @@ const subscribeChannel = asyncHandler(async (req, res) => {
         channel,
         subscriber: req.user?._id,
     });
-    if (checkIfSubscribed.length > 0)
+    if (!checkIfSubscribed)
         throw new ApiError(400, "Already subscribed.");
 
     //* Insert a new record of subscription
@@ -441,6 +441,38 @@ const subscribeChannel = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, result, "Subscribed successfully."));
 });
 
+const unsubscribeChannel = asyncHandler(async (req, res) => {
+    //* Get channel id from request body attribute and perform sanity check
+    const { channel } = req.body;
+    if (channel === undefined || !channel)
+        throw new ApiError(400, "No channel provided.");
+
+    //* Check if user is already subscribed to this channel or not
+    const isSubscribed = await Subscription.findOne({
+        channel,
+        subscriber: req.user?._id,
+    });
+    if (!isSubscribed)
+        throw new ApiError(400, "Channel is not subscribed.");
+
+    //* Delete subscribe document from Database
+    const unsubscribeResult = await Subscription.findByIdAndDelete(
+        isSubscribed._id
+    );
+    if (!unsubscribeResult)
+        throw new ApiError(400, "Channel not found.");
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                unsubscribeResult,
+                "Unsubscribed successfully."
+            )
+        );
+});
+
 module.exports = {
     registerUser,
     loginUser,
@@ -453,4 +485,5 @@ module.exports = {
     updateUserCoverImage,
     getUserChannelProfile,
     subscribeChannel,
+    unsubscribeChannel,
 };

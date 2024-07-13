@@ -6,6 +6,7 @@ const {
     refreshAccessToken,
     getUserChannelProfile,
     subscribeChannel,
+    unsubscribeChannel,
 } = require("../controllers/user.controller");
 const upload = require("../middlewares/multer.middleware");
 const verifyJwt = require("../middlewares/auth.middleware");
@@ -33,6 +34,7 @@ router
     .post("/logout", verifyJwt, logoutUser)
     .get("/getUserChannelProfile/:username", verifyJwt, getUserChannelProfile)
     .post("/subscribe", verifyJwt, subscribeChannel)
+    .post("/unsubscribe", verifyJwt, unsubscribeChannel)
     .post("/generate-token", refreshAccessToken);
 
 module.exports = router;
