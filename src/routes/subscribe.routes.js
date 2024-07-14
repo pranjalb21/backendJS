@@ -5,6 +5,7 @@ const {
     unsubscribeChannel,
     toggleSubscription,
     getUserChannelSubscribers,
+    getSubscribedChannels,
 } = require("../controllers/subscribe.controller");
 
 const router = express.Router();
@@ -14,6 +15,7 @@ router
     .post("/add", subscribeChannel)
     .post("/delete", unsubscribeChannel)
     .post("/subscribe/:channelId", toggleSubscription)
-    .get("/subscribers/:channelId", getUserChannelSubscribers);
+    .get("/subscribers/:channelId", getUserChannelSubscribers)
+    .get("/subscribed/:subscriberId", getSubscribedChannels);
 
 module.exports = router;

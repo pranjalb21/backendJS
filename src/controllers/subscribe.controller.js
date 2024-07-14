@@ -127,29 +127,30 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                 localField: "subscriber",
                 foreignField: "_id",
                 as: "subscribers",
-                pipeline:[
+                pipeline: [
                     {
-                        $project:{
-                            userName:1,
-                            fullName:1,
-                            avatar:1
-                        }
-                    }
-                ]
+                        $project: {
+                            _id: 1,
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
             },
         },
         {
-            $addFields:{
+            $addFields: {
                 subscriberCount: {
-                    $size:"$subscribers"
-                }
-            }
+                    $size: "$subscribers",
+                },
+            },
         },
         {
             $project: {
                 subscribers: 1,
-                subscriberCount:1,
-                _id:0
+                subscriberCount: 1,
+                _id: 0,
             },
         },
     ]);
@@ -159,7 +160,9 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                subscribers[0],
+                subscribers[0]
+                    ? subscribers[0]
+                    : { subscribers: [], subscriberCount: 0 },
                 "Subscribers fetched successfully."
             )
         );
@@ -168,11 +171,75 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params;
+
+    //* Sanity check
+    if (subscriberId === undefined || !subscriberId)
+        throw new ApiError(400, "No subscriber found.");
+    try {
+        new mongoose.Types.ObjectId(subscriberId);
+    } catch (error) {
+        throw new ApiError(400, "Invalid user.");
+    }
+
+    console.log(subscriberId);
+    //* Get all channels which user is subscribed
+    const subscribedChannels = await Subscription.aggregate([
+        {
+            $match: {
+                subscriber: new mongoose.Types.ObjectId(subscriberId),
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "subscribedChannels",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            userName: 1,
+                            email: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $addFields: {
+                subscribedChannelsCount: {
+                    $size: "$subscribedChannels",
+                },
+            },
+        },
+        {
+            $project: {
+                _id: 0,
+                subscribedChannels: 1,
+                subscribedChannelsCount: 1,
+            },
+        },
+    ]);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                subscribedChannels[0]
+                    ? subscribedChannels[0]
+                    : { subscribedChannels: [], subscribedChannelsCount: 0 },
+                "Subscribed channel list fetched."
+            )
+        );
 });
 
 module.exports = {
     subscribeChannel,
     unsubscribeChannel,
     toggleSubscription,
-    getUserChannelSubscribers
+    getUserChannelSubscribers,
+    getSubscribedChannels,
 };
