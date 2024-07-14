@@ -8,7 +8,7 @@ const {
 const router = express.Router();
 
 router
-    .post("/subscribe", verifyJwt, subscribeChannel)
-    .post("/unsubscribe", verifyJwt, unsubscribeChannel);
+    .post("/add", verifyJwt, subscribeChannel)
+    .post("/delete", verifyJwt, unsubscribeChannel);
 
 module.exports = router
