@@ -181,7 +181,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid user.");
     }
 
-    console.log(subscriberId);
     //* Get all channels which user is subscribed
     const subscribedChannels = await Subscription.aggregate([
         {
