@@ -21,6 +21,6 @@ const subscribeRouter = require("./routes/subscribe.routes");
 
 //* Routes declare
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/subscribe", subscribeRouter);
+app.use("/api/v1/subscribes", subscribeRouter);
 
 module.exports = app;
