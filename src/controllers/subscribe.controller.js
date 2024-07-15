@@ -3,6 +3,7 @@ const Subscription = require("../models/subscription.model");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
+const { sanityCheck } = require("./common.methods");
 
 const subscribeChannel = asyncHandler(async (req, res) => {
     //* Get channel id from request body attribute and perform sanity check
@@ -107,13 +108,9 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
 
     //* Sanity check
-    if (channelId === undefined || !channelId)
+    const isChannelIdValid = sanityCheck(channelId)
+    if (!isChannelIdValid)
         throw new ApiError(400, "No channel found.");
-    try {
-        new mongoose.Types.ObjectId(channelId);
-    } catch (error) {
-        throw new ApiError(400, "Invalid channel.");
-    }
 
     const subscribers = await Subscription.aggregate([
         {
@@ -173,12 +170,9 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params;
 
     //* Sanity check
-    if (subscriberId === undefined || !subscriberId)
-        throw new ApiError(400, "No subscriber found.");
-    try {
-        new mongoose.Types.ObjectId(subscriberId);
-    } catch (error) {
-        throw new ApiError(400, "Invalid user.");
+    const isSubscriberIdValid = sanityCheck(subscriberId)
+    if (!isSubscriberIdValid){
+        throw new ApiError(400, "User not found.");
     }
 
     //* Get all channels which user is subscribed
@@ -240,5 +234,5 @@ module.exports = {
     unsubscribeChannel,
     toggleSubscription,
     getUserChannelSubscribers,
-    getSubscribedChannels,
+    getSubscribedChannels
 };

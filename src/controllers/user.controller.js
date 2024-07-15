@@ -10,6 +10,7 @@ const {
     deleteFromCloudinary,
 } = require("../utils/Cloudinary");
 const jwt = require("jsonwebtoken");
+const { getPublicId } = require("./common.methods");
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -315,10 +316,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
-    const currentImage = deleteUserCoverImage.avatar
-        .split("/")
-        [deleteUserCoverImage.avatar.split("/").length - 1].split(".")[0];
-    await deleteFromCloudinary(currentImage, "image");
+    const currentAvatar = getPublicId(deleteUserCoverImage.avatar);
+    await deleteFromCloudinary(currentAvatar);
 
     //* Update the image URL into Database
     const user = await User.findByIdAndUpdate(
@@ -354,10 +353,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
-    const currentImage = deleteUserCoverImage.coverImage
-        .split("/")
-        [deleteUserCoverImage.coverImage.split("/").length - 1].split(".")[0];
-    await deleteFromCloudinary(currentImage, "image");
+    const currentCoverImage = getPublicId(deleteUserCoverImage.coverImage);
+    await deleteFromCloudinary(currentCoverImage);
 
     //* Update the image URL into Database
     const user = await User.findByIdAndUpdate(
