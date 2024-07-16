@@ -6,7 +6,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const {
-    uploadOnCoudinary,
+    uploadOnCloudinary,
     deleteFromCloudinary,
 } = require("../utils/Cloudinary");
 const jwt = require("jsonwebtoken");
@@ -59,8 +59,8 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!avatarLocalPath) throw new ApiError(400, "Avatar image is required.");
 
     //* upload image and avatar into cloudinary
-    const avatar = await uploadOnCoudinary(avatarLocalPath);
-    const coverImage = await uploadOnCoudinary(coverImageLocalPath);
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if (!avatar) throw new ApiError(400, "Avatar image is required...");
 
     //* create user object with all the inputs including image link from cloudinary
@@ -307,7 +307,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please provide an avatar image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
-    const avatar = await uploadOnCoudinary(avatarLocalPath);
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
     if (!avatar.url)
         throw new ApiError(
             400,
@@ -344,7 +344,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Please provide a cover image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
-    const coverImage = await uploadOnCoudinary(coverImageLocalPath);
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if (!coverImage.url)
         throw new ApiError(
             400,
