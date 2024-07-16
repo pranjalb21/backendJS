@@ -1,6 +1,13 @@
 const express = require("express");
 const verifyJwt = require("../middlewares/auth.middleware");
-const { getAllVideos, postAVideo } = require("../controllers/video.controller");
+const {
+    getAllVideos,
+    postAVideo,
+    getVideoById,
+    deleteVideo,
+    togglePublishStatus,
+    updateVideo,
+} = require("../controllers/video.controller");
 const upload = require("../middlewares/multer.middleware");
 
 const router = express.Router();
@@ -8,6 +15,7 @@ const router = express.Router();
 router
     .use(verifyJwt)
     .get("/all", getAllVideos)
+    .get("/:videoId", getVideoById)
 
     .post(
         "/add",
@@ -19,6 +27,9 @@ router
             },
         ]),
         postAVideo
-    );
+    )
+    .patch("/publish-toggle/:videoId", togglePublishStatus)
+    .patch("/update/:videoId",upload.single('thumbnail'), updateVideo)
+    .delete("/delete/:videoId", deleteVideo);
 
 module.exports = router;

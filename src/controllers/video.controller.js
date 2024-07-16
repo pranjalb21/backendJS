@@ -1,13 +1,14 @@
-const Video =require("../models/video.model.js");
-const User =require("../models/user.model.js");
-const ApiError =require("../utils/ApiError.js");
-const ApiResponse =require("../utils/ApiResponse.js");
-const asyncHandler =require("../utils/asyncHandler.js");
-const
-    {deleteFromCloudinary,
-    uploadOnCloudinary,}
-=require("../utils/Cloudinary.js");
-const {getPublicId, sanityCheck} =require("./common.methods.js");
+const Video = require("../models/video.model.js");
+const User = require("../models/user.model.js");
+const ApiError = require("../utils/ApiError.js");
+const ApiResponse = require("../utils/ApiResponse.js");
+const asyncHandler = require("../utils/asyncHandler.js");
+const {
+    deleteFromCloudinary,
+    uploadOnCloudinary,
+} = require("../utils/Cloudinary.js");
+const mongoose = require("mongoose");
+const { getPublicId } = require("./common.methods.js");
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -32,25 +33,25 @@ const getAllVideos = asyncHandler(async (req, res) => {
         },
         {
             $addFields: {
-                ownerInfo: {
-                    $first:"$ownerDetails"
+                owner: {
+                    $first: "$ownerDetails",
                 },
             },
         },
         {
             $project: {
-                owner: 0,
-                ownerDetails:0
+                ownerDetails: 0,
             },
         },
     ]);
+
     return res
         .status(200)
         .json(
             new ApiResponse(
                 200,
-                videos.length>0 ? videos : [],
-                videos.length>0
+                videos.length > 0 ? videos : [],
+                videos.length > 0
                     ? "All videos are fetched successfully."
                     : "No videos found."
             )
@@ -73,8 +74,6 @@ const postAVideo = asyncHandler(async (req, res) => {
     const video = await uploadOnCloudinary(videoLocalFilePath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-    console.log(video);
-    console.log(thumbnail);
     if (!video || !thumbnail)
         throw new ApiError(
             400,
@@ -87,7 +86,7 @@ const postAVideo = asyncHandler(async (req, res) => {
         thumbnail: thumbnail.url,
         title,
         description,
-        duration: 1,
+        duration: parseFloat(video.duration).toFixed(2),
         isPublished: true,
         owner: req.user?._id,
     };
@@ -109,7 +108,8 @@ const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
     //* Sanity check
-    const isVideoIdValid = sanityCheck(videoId);
+    const isVideoIdValid = mongoose.isValidObjectId(videoId);
+    console.log(isVideoIdValid);
     if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
 
     const video = await Video.aggregate([
@@ -124,7 +124,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                 localField: "owner",
                 foreignField: "_id",
                 as: "ownerField",
-                pipeLine: [
+                pipeline: [
                     {
                         $project: {
                             _id: 1,
@@ -165,10 +165,10 @@ const updateVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
     if (!title || !description)
         throw new ApiError(400, "All fields are required.");
-    const isVideoIdValid = sanityCheck(videoId);
+    const isVideoIdValid = mongoose.isValidObjectId(videoId);
     if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
 
-    const thumbnailLocalPath = req.file?.thumbnail;
+    const thumbnailLocalPath = req.file?.path;
     let thumbnailUpload = null;
     if (thumbnailLocalPath) {
         thumbnailUpload = await uploadOnCloudinary(thumbnailLocalPath);
@@ -204,7 +204,7 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
-    const isVideoIdValid = sanityCheck(videoId);
+    const isVideoIdValid = mongoose.isValidObjectId(videoId);
     if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
@@ -212,7 +212,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
     if (!video) throw new ApiError(400, "Video not found.");
 
     //* Check if current user is the owner of the video
-    if (video.owner !== req.user?._id)
+    if (!video.owner.equals(req.user?._id))
         throw new ApiError(401, "User unuthorized.");
 
     const videoDetails = await Video.findByIdAndDelete(videoId);
@@ -233,7 +233,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
     //* Sanity check
-    const isVideoIdValid = sanityCheck(videoId);
+    const isVideoIdValid = mongoose.isValidObjectId(videoId);
     if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
@@ -241,7 +241,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     if (!video) throw new ApiError(400, "Video not found.");
 
     //* Check if current user is the owner of the video
-    if (video.owner !== req.user?._id)
+    if (!video.owner.equals(req.user?._id))
         throw new ApiError(401, "User unuthorized.");
 
     //* Toggle the isPublished value and save the info in database

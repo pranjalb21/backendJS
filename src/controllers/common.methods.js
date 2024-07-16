@@ -1,7 +1,8 @@
 const sanityCheck = (id) => {
     if (id === undefined || !id) return false;
     try {
-        new mongoose.Types.ObjectId(id);
+        const a = new mongoose.Types.ObjectId(id);
+        console.log(a);
         return true;
     } catch (error) {
         return false;
