@@ -1,35 +1,80 @@
-import mongoose, { isValidObjectId } from "mongoose";
-import { Video } from "../models/video.model.js";
-import { User } from "../models/user.model.js";
-import { ApiError } from "../utils/ApiError.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
-import {
-    deleteFromCloudinary,
-    uploadOnCloudinary,
-} from "../utils/Cloudinary.js";
-import { getPublicId, sanityCheck } from "./common.methods.js";
+const Video =require("../models/video.model.js");
+const User =require("../models/user.model.js");
+const ApiError =require("../utils/ApiError.js");
+const ApiResponse =require("../utils/ApiResponse.js");
+const asyncHandler =require("../utils/asyncHandler.js");
+const
+    {deleteFromCloudinary,
+    uploadOnCloudinary,}
+=require("../utils/Cloudinary.js");
+const {getPublicId, sanityCheck} =require("./common.methods.js");
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
     //TODO: get all videos based on query, sort, pagination
+    const videos = await Video.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $addFields: {
+                ownerInfo: {
+                    $first:"$ownerDetails"
+                },
+            },
+        },
+        {
+            $project: {
+                owner: 0,
+                ownerDetails:0
+            },
+        },
+    ]);
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                videos.length>0 ? videos : [],
+                videos.length>0
+                    ? "All videos are fetched successfully."
+                    : "No videos found."
+            )
+        );
 });
 
-const publishAVideo = asyncHandler(async (req, res) => {
+const postAVideo = asyncHandler(async (req, res) => {
     //* Sanity check of title and description
     const { title, description } = req.body;
     if (!title || !description)
         throw new ApiError(400, "All fields are required.");
 
     //* Get the uploaded file local path and perform sanity check
-    const videoLocalFilePath = req.files?.video;
-    const thumbnailLocalPath = req.files?.thumbnail;
+    const videoLocalFilePath = req.files?.video[0].path;
+    const thumbnailLocalPath = req.files?.thumbnail[0].path;
     if (!videoLocalFilePath || !thumbnailLocalPath)
-        throw new ApiError(400, "All files are required.");
+        throw new ApiError(400, "All fields are required.");
 
     //* Upload the files into cloudinary and check if upload was successfull
     const video = await uploadOnCloudinary(videoLocalFilePath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+    console.log(video);
+    console.log(thumbnail);
     if (!video || !thumbnail)
         throw new ApiError(
             400,
@@ -216,9 +261,9 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         );
 });
 
-export {
+module.exports = {
     getAllVideos,
-    publishAVideo,
+    postAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,

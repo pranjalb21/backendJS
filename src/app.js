@@ -18,9 +18,11 @@ app.use(cookieParser());
 //* Routes import
 const userRouter = require("./routes/user.routes");
 const subscribeRouter = require("./routes/subscribe.routes");
+const videoRouter = require("./routes/video.routes");
 
 //* Routes declare
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/subscribes", subscribeRouter);
+app.use("/api/v1/videos", videoRouter);
 
 module.exports = app;
