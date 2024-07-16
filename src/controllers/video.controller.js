@@ -109,7 +109,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     //* Sanity check
     const isVideoIdValid = mongoose.isValidObjectId(videoId);
-    console.log(isVideoIdValid);
     if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
 
     const video = await Video.aggregate([
