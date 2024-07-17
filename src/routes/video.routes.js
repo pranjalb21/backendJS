@@ -7,6 +7,7 @@ const {
     deleteVideo,
     togglePublishStatus,
     updateVideo,
+    addView,
 } = require("../controllers/video.controller");
 const upload = require("../middlewares/multer.middleware");
 
@@ -29,7 +30,8 @@ router
         postAVideo
     )
     .patch("/publish-toggle/:videoId", togglePublishStatus)
-    .patch("/update/:videoId",upload.single('thumbnail'), updateVideo)
+    .patch("/update/:videoId", upload.single("thumbnail"), updateVideo)
+    .patch("/view/:videoId", addView)
     .delete("/delete/:videoId", deleteVideo);
 
 module.exports = router;

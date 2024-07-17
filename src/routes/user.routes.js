@@ -11,6 +11,7 @@ const {
     updateUserAvatar,
     updateUserCoverImage,
     getUserWatchHistory,
+    addWatchHistory,
 } = require("../controllers/user.controller");
 const upload = require("../middlewares/multer.middleware");
 const verifyJwt = require("../middlewares/auth.middleware");
@@ -34,7 +35,7 @@ router
     )
     .post("/login", loginUser)
 
-    .post('/refresh-token', refreshAccessToken)
+    .post("/refresh-token", refreshAccessToken)
 
     //? Secured routes
     .get("/current", verifyJwt, getCurrentUser)
@@ -57,6 +58,7 @@ router
         verifyJwt,
         upload.single("coverImage"),
         updateUserCoverImage
-    );
+    )
+    .patch("/watch-history/:videoId", verifyJwt, addWatchHistory);
 
 module.exports = router;

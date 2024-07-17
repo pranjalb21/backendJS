@@ -260,6 +260,20 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         );
 });
 
+const addView = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    if (!mongoose.isValidObjectId(videoId))
+        throw new ApiError(400, "Video not found.");
+
+    const video = await Video.findById(videoId);
+    if (!video) throw new ApiError(400, "Video not found.");
+    video.views = video.views + 1;
+    await video.save();
+    return res
+        .status(200)
+        .json(new ApiResponse(200, video, "Video viewed successfully."));
+});
+
 module.exports = {
     getAllVideos,
     postAVideo,
@@ -267,4 +281,5 @@ module.exports = {
     updateVideo,
     deleteVideo,
     togglePublishStatus,
+    addView
 };

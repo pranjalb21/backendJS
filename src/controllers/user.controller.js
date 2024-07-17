@@ -11,6 +11,7 @@ const {
 } = require("../utils/Cloudinary");
 const jwt = require("jsonwebtoken");
 const { getPublicId } = require("./common.methods");
+const Video = require("../models/video.model");
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -505,6 +506,29 @@ const getUserWatchHistory = asyncHandler(async (req, res) => {
         );
 });
 
+const addWatchHistory = asyncHandler(async (req, res) => {
+    //* Get video id from req params attribute and perform sanity check
+    const { videoId } = req.params;
+    if (!mongoose.isValidObjectId(videoId))
+        throw new ApiError(400, "Video not found.");
+
+    //* Check if video exists or not
+    const video = await Video.findById(videoId);
+    if (!video) throw new ApiError(400, "Video not found.");
+
+    //* Check if video already exists in user watch history or not
+    const user = await User.findById(req.user?._id);
+    if(user.watchHistory.includes(videoId))
+        throw new ApiError(400, "Video already present in watch history.")
+
+    //* Push video id into user watch history
+    user.watchHistory.push(video._id);
+    await user.save();
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "Video added into history."));
+});
+
 module.exports = {
     registerUser,
     loginUser,
@@ -517,4 +541,5 @@ module.exports = {
     updateUserCoverImage,
     getUserChannelProfile,
     getUserWatchHistory,
+    addWatchHistory,
 };
