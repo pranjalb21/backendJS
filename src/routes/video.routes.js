@@ -9,6 +9,7 @@ import {
     togglePublishStatus,
     updateVideo,
     addView,
+    getUserVideos,
 } from "../controllers/video.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 
@@ -18,6 +19,7 @@ router
     .use(verifyJwt)
     .get("/all", getAllVideos)
     .get("/:videoId", getVideoById)
+    .get("/user/:user",getUserVideos)
 
     .post(
         "/add",

@@ -28,10 +28,82 @@ const createTweet = asyncHandler(async (req, res) => {
 });
 
 const getUserTweets = asyncHandler(async (req, res) => {
+    //* Get number of pages and userId from req query attribute
+    const { page = 1, user } = req.query;
+    if (!mongoose.isValidObjectId(user))
+        throw new ApiError(400, "User not found.");
+
+    //* Define the pipeline query
+    const pipeline = [
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(user),
+            },
+        },
+        {
+            $sort: { createdAt: -1 },
+        },
+    ];
+
+    //* Define page number and the number of posts limit per page
+    const options = {
+        page,
+        limit: Number(process.env.NO_OF_POSTS_PER_PAGE),
+    };
+    const tweets = await Tweet.aggregatePaginate(pipeline, options);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, tweets, "User tweets are fetched."));
+});
+
+const getTweetById = asyncHandler(async (req, res) => {
+    //* Get tweetId from req params attribute
+    const { tweetId } = req.params;
+    if (!mongoose.isValidObjectId(tweetId))
+        throw new ApiError(400, "Tweet not found.");
+
+    const tweet = await Tweet.findById(tweetId);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, tweet, "User tweets are fetched."));
+});
+
+const getAllTweets = asyncHandler(async (req, res) => {
     //* Get all the tweets for the user id
-    const tweets = await Tweet.find({ owner: req.user?._id }).sort({
-        createdAt: -1,
-    });
+    const { page = 1 } = req.query;
+
+    //* Define the pipeline query
+    const pipeline = [
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $sort: { createdAt: -1 },
+        },
+    ];
+
+    //* Define page number and the number of posts limit per page
+    const options = {
+        page,
+        limit: Number(process.env.NO_OF_POSTS_PER_PAGE),
+    };
+    const tweets = await Tweet.aggregatePaginate(pipeline, options);
 
     return res
         .status(200)
@@ -67,7 +139,7 @@ const updateTweet = asyncHandler(async (req, res) => {
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //* Get tweet id from req params attribute and sanity check
-    const {tweetId} = req.params;
+    const { tweetId } = req.params;
     if (!mongoose.isValidObjectId(tweetId))
         throw new ApiError(400, "Tweet not found.");
 
@@ -92,4 +164,11 @@ const deleteTweet = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, deletedTweet, "Tweet has been deleted."));
 });
 
-export { createTweet, getUserTweets, updateTweet, deleteTweet };
+export {
+    createTweet,
+    getUserTweets,
+    getAllTweets,
+    getTweetById,
+    updateTweet,
+    deleteTweet,
+};

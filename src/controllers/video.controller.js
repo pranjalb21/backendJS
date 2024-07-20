@@ -1,20 +1,22 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-import Video from "../models/video.model.js"
-import User from "../models/user.model.js"
-import ApiError from "../utils/ApiError.js"
-import ApiResponse from "../utils/ApiResponse.js"
-import asyncHandler from "../utils/asyncHandler.js"
+import Video from "../models/video.model.js";
+import User from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
 import {
     deleteFromCloudinary,
     uploadOnCloudinary,
-} from "../utils/Cloudinary.js"
-import { getPublicId } from "./common.methods.js"
+} from "../utils/Cloudinary.js";
+import { getPublicId } from "./common.methods.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+    const { page = 1, query, sortBy, sortType, userId } = req.query;
     //TODO: get all videos based on query, sort, pagination
-    const videos = await Video.aggregate([
+
+    //* Aggregate query for video list
+    const pipeline = [
         {
             $lookup: {
                 from: "users",
@@ -44,19 +46,84 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 ownerDetails: 0,
             },
         },
-    ]);
+        {
+            $sort: {
+                createdAt: "-1",
+            },
+        },
+    ];
+
+    //* Option to limit the number of result per page
+    const options = {
+        page,
+        limit: process.env.NO_OF_POSTS_PER_PAGE,
+    };
+    const videos = await Video.aggregatePaginate(pipeline, options);
 
     return res
         .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                videos.length > 0 ? videos : [],
-                videos.length > 0
-                    ? "All videos are fetched successfully."
-                    : "No videos found."
-            )
-        );
+        .json(new ApiResponse(200, videos, "Videos fetched successfully."));
+});
+
+const getUserVideos = asyncHandler(async (req, res) => {
+    const { page = 1, query, sortBy, sortType, user } = req.query;
+    //TODO: get all videos based on query, sort, pagination
+    if (!mongoose.isValidObjectId(user))
+        throw new ApiError(400, "User not found.");
+
+    //* Aggregate query for video list
+    const pipeline = [
+        {
+            $match: {
+                owner: new mongoose.Types.ObjectId(user),
+            },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            userName: 1,
+                            fullName: 1,
+                            avatar: 1,
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$ownerDetails",
+                },
+            },
+        },
+        {
+            $project: {
+                ownerDetails: 0,
+            },
+        },
+        {
+            $sort: {
+                createdAt: "-1",
+            },
+        },
+    ];
+
+    //* Option to limit the number of result per page
+    const options = {
+        page,
+        limit: process.env.NO_OF_POSTS_PER_PAGE,
+    };
+    const videos = await Video.aggregatePaginate(pipeline, options);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, videos, "Videos fetched successfully."));
 });
 
 const postAVideo = asyncHandler(async (req, res) => {
@@ -278,6 +345,7 @@ export {
     getAllVideos,
     postAVideo,
     getVideoById,
+    getUserVideos,
     updateVideo,
     deleteVideo,
     togglePublishStatus,
