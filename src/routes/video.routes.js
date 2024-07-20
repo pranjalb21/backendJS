@@ -1,6 +1,7 @@
-const express = require("express");
-const verifyJwt = require("../middlewares/auth.middleware");
-const {
+import express from "express";
+
+import verifyJwt from "../middlewares/auth.middleware.js";
+import {
     getAllVideos,
     postAVideo,
     getVideoById,
@@ -8,8 +9,8 @@ const {
     togglePublishStatus,
     updateVideo,
     addView,
-} = require("../controllers/video.controller");
-const upload = require("../middlewares/multer.middleware");
+} from "../controllers/video.controller.js";
+import upload from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
 
@@ -34,4 +35,4 @@ router
     .patch("/view/:videoId", addView)
     .delete("/delete/:videoId", deleteVideo);
 
-module.exports = router;
+export default router;

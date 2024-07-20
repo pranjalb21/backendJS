@@ -1,14 +1,15 @@
-const Video = require("../models/video.model.js");
-const User = require("../models/user.model.js");
-const ApiError = require("../utils/ApiError.js");
-const ApiResponse = require("../utils/ApiResponse.js");
-const asyncHandler = require("../utils/asyncHandler.js");
-const {
+import mongoose from "mongoose"
+
+import Video from "../models/video.model.js"
+import User from "../models/user.model.js"
+import ApiError from "../utils/ApiError.js"
+import ApiResponse from "../utils/ApiResponse.js"
+import asyncHandler from "../utils/asyncHandler.js"
+import {
     deleteFromCloudinary,
     uploadOnCloudinary,
-} = require("../utils/Cloudinary.js");
-const mongoose = require("mongoose");
-const { getPublicId } = require("./common.methods.js");
+} from "../utils/Cloudinary.js"
+import { getPublicId } from "./common.methods.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -274,12 +275,12 @@ const addView = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, video, "Video viewed successfully."));
 });
 
-module.exports = {
+export {
     getAllVideos,
     postAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
     togglePublishStatus,
-    addView
+    addView,
 };

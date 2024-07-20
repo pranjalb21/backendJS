@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Basic app for deploy",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "server": "nodemon ./src/index.js"
   },

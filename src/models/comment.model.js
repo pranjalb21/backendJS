@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const mongooseAggregatePaginate = require('mongoose-aggregate-paginate-v2')
+import mongoose from "mongoose";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const commentSchema = mongoose.Schema(
     {
@@ -11,9 +11,9 @@ const commentSchema = mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Video",
         },
-        tweet:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"Tweet"
+        tweet: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Tweet",
         },
         owner: {
             type: mongoose.Schema.Types.ObjectId,
@@ -25,7 +25,6 @@ const commentSchema = mongoose.Schema(
     }
 );
 
-commentSchema.plugin(mongooseAggregatePaginate)
-
+commentSchema.plugin(mongooseAggregatePaginate);
 const Comment = mongoose.model("Comment", commentSchema);
-module.exports = Comment;
+export default Comment

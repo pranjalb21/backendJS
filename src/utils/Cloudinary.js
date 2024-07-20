@@ -1,5 +1,5 @@
-const cloudinary = require("cloudinary");
-const fs = require("fs");
+import cloudinary from "cloudinary";
+import fs from "fs";
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -38,4 +38,4 @@ const deleteFromCloudinary = async (publicId) => {
     }
 };
 
-module.exports = { uploadOnCloudinary, deleteFromCloudinary };
+export { uploadOnCloudinary, deleteFromCloudinary };

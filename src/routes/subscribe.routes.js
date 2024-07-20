@@ -1,12 +1,13 @@
-const express = require("express");
-const verifyJwt = require("../middlewares/auth.middleware");
-const {
+import express from "express";
+
+import verifyJwt from "../middlewares/auth.middleware.js";
+import {
     subscribeChannel,
     unsubscribeChannel,
     toggleSubscription,
     getUserChannelSubscribers,
     getSubscribedChannels,
-} = require("../controllers/subscribe.controller");
+} from "../controllers/subscribe.controller.js";
 
 const router = express.Router();
 
@@ -18,4 +19,4 @@ router
     .get("/subscribers/:channelId", getUserChannelSubscribers)
     .get("/subscribed/:subscriberId", getSubscribedChannels);
 
-module.exports = router;
+export default router;

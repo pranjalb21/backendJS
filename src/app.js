@@ -1,6 +1,6 @@
-const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -16,10 +16,10 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 //* Routes import
-const userRouter = require("./routes/user.routes");
-const subscribeRouter = require("./routes/subscribe.routes");
-const videoRouter = require("./routes/video.routes");
-const likeRouter = require("./routes/like.routes")
+import userRouter from "./routes/user.routes.js";
+import subscribeRouter from "./routes/subscribe.routes.js";
+import videoRouter from "./routes/video.routes.js";
+import likeRouter from "./routes/like.routes.js";
 
 //* Routes declare
 app.use("/api/v1/users", userRouter);
@@ -27,4 +27,4 @@ app.use("/api/v1/subscribes", subscribeRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/likes", likeRouter);
 
-module.exports = app;
+export default app;

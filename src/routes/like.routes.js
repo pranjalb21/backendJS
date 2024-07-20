@@ -1,15 +1,21 @@
-const express = require("express")
-const verifyJwt = require("../middlewares/auth.middleware")
-const { toggleVideoLike, toggleTweetLike, toggleCommentLike, getLikedVideos } = require("../controllers/like.controller")
+import express from "express";
 
-const router = express.Router()
+import verifyJwt from "../middlewares/auth.middleware.js";
+import {
+    toggleVideoLike,
+    toggleTweetLike,
+    toggleCommentLike,
+    getLikedVideos,
+} from "../controllers/like.controller.js";
+
+const router = express.Router();
 
 router
     .use(verifyJwt)
 
-    .get('/video',getLikedVideos)
-    .post('/video/:videoId',toggleVideoLike)
-    .post('/tweet/:tweetId',toggleTweetLike)
-    .post('/comment/:commentId',toggleCommentLike)
+    .get("/video", getLikedVideos)
+    .post("/video/:videoId", toggleVideoLike)
+    .post("/tweet/:tweetId", toggleTweetLike)
+    .post("/comment/:commentId", toggleCommentLike);
 
-module.exports = router
+export default router;

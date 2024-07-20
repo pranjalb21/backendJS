@@ -1,17 +1,17 @@
-const { default: mongoose } = require("mongoose");
-const Subscription = require("../models/subscription.model");
-const User = require("../models/user.model");
-const { subscribe } = require("../routes/user.routes");
-const ApiError = require("../utils/ApiError");
-const ApiResponse = require("../utils/ApiResponse");
-const asyncHandler = require("../utils/asyncHandler");
-const {
+import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+
+import Subscription from "../models/subscription.model.js";
+import User from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import {
     uploadOnCloudinary,
     deleteFromCloudinary,
-} = require("../utils/Cloudinary");
-const jwt = require("jsonwebtoken");
-const { getPublicId } = require("./common.methods");
-const Video = require("../models/video.model");
+} from "../utils/Cloudinary.js";
+import { getPublicId } from "./common.methods.js";
+import Video from "../models/video.model.js";
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -518,8 +518,8 @@ const addWatchHistory = asyncHandler(async (req, res) => {
 
     //* Check if video already exists in user watch history or not
     const user = await User.findById(req.user?._id);
-    if(user.watchHistory.includes(videoId))
-        throw new ApiError(400, "Video already present in watch history.")
+    if (user.watchHistory.includes(videoId))
+        throw new ApiError(400, "Video already present in watch history.");
 
     //* Push video id into user watch history
     user.watchHistory.push(video._id);
@@ -529,7 +529,7 @@ const addWatchHistory = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "Video added into history."));
 });
 
-module.exports = {
+export {
     registerUser,
     loginUser,
     logoutUser,

@@ -1,5 +1,6 @@
-const express = require("express");
-const {
+import express from "express";
+
+import {
     registerUser,
     loginUser,
     logoutUser,
@@ -12,9 +13,9 @@ const {
     updateUserCoverImage,
     getUserWatchHistory,
     addWatchHistory,
-} = require("../controllers/user.controller");
-const upload = require("../middlewares/multer.middleware");
-const verifyJwt = require("../middlewares/auth.middleware");
+} from "../controllers/user.controller.js";
+import upload from "../middlewares/multer.middleware.js";
+import verifyJwt from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -61,4 +62,4 @@ router
     )
     .patch("/watch-history/:videoId", verifyJwt, addWatchHistory);
 
-module.exports = router;
+export default router;

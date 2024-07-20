@@ -1,9 +1,10 @@
-const mongoose = require("mongoose");
-const Tweet = require("../models/tweet.model.js");
-const User = require("../models/user.model.js");
-const ApiError = require("../utils/ApiError.js");
-const ApiResponse = require("../utils/ApiResponse.js");
-const asyncHandler = require("../utils/asyncHandler.js");
+import mongoose from "mongoose";
+
+import Tweet from "../models/tweet.model.js";
+import User from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const createTweet = asyncHandler(async (req, res) => {
     //* Get tweet body from req body attribute and check if not empty
@@ -88,4 +89,4 @@ const deleteTweet = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, deleteTweet, "Tweet has been deleted."));
 });
 
-module.exports = { createTweet, getUserTweets, updateTweet, deleteTweet };
+export { createTweet, getUserTweets, updateTweet, deleteTweet };

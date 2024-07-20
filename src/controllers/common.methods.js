@@ -14,7 +14,4 @@ const getPublicId = (url) => {
     return publicId;
 };
 
-module.exports = {
-    sanityCheck,
-    getPublicId,
-};
+export { sanityCheck, getPublicId };

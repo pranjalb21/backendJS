@@ -1,8 +1,9 @@
-const mongoose = require("mongoose");
-const Like = require("../models/like.model.js");
-const ApiError = require("../utils/ApiError.js");
-const ApiResponse = require("../utils/ApiResponse.js");
-const asyncHandler = require("../utils/asyncHandler.js");
+import mongoose from "mongoose";
+
+import Like from "../models/like.model.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     //* Get video Id and perform sanity check.
@@ -121,4 +122,4 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         );
 });
 
-module.exports = { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
+export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
