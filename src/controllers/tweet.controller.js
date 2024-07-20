@@ -8,7 +8,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const createTweet = asyncHandler(async (req, res) => {
     //* Get tweet body from req body attribute and check if not empty
-    const content = req.body;
+    const { content } = req.body;
+    console.log(content);
     if (!content) throw new ApiError(400, "Tweet content is required.");
 
     //* Post tweet into database taking owner id from req user attribute
@@ -28,7 +29,9 @@ const createTweet = asyncHandler(async (req, res) => {
 
 const getUserTweets = asyncHandler(async (req, res) => {
     //* Get all the tweets for the user id
-    const tweets = await Tweet.find({ owner: req.user?._id });
+    const tweets = await Tweet.find({ owner: req.user?._id }).sort({
+        createdAt: -1,
+    });
 
     return res
         .status(200)
@@ -37,13 +40,13 @@ const getUserTweets = asyncHandler(async (req, res) => {
 
 const updateTweet = asyncHandler(async (req, res) => {
     //* Get tweet id from req params attribute and sanity check
-    const tweetId = req.params;
+    const { tweetId } = req.params;
     if (!mongoose.isValidObjectId(tweetId))
         throw new ApiError(400, "Tweet not found.");
 
     //* Get tweet content from req body attribute and check if empty
-    const content = req.body;
-    if (!content) throw new ApiError(400, "Tweet content is required.");
+    const { content } = req.body;
+    if (!content.trim()) throw new ApiError(400, "Tweet content is required.");
 
     //* Fetch tweet details from Database and check if it returns the tweet
     const tweet = await Tweet.findById(tweetId);
@@ -54,7 +57,7 @@ const updateTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User not authorized.");
 
     //* Update the tweet with new content and save
-    tweet.content = content;
+    tweet.content = content.trim();
     await tweet.save();
 
     return res
@@ -64,7 +67,7 @@ const updateTweet = asyncHandler(async (req, res) => {
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //* Get tweet id from req params attribute and sanity check
-    const tweetId = req.params;
+    const {tweetId} = req.params;
     if (!mongoose.isValidObjectId(tweetId))
         throw new ApiError(400, "Tweet not found.");
 
@@ -86,7 +89,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
 
     return res
         .status(200)
-        .json(new ApiResponse(200, deleteTweet, "Tweet has been deleted."));
+        .json(new ApiResponse(200, deletedTweet, "Tweet has been deleted."));
 });
 
 export { createTweet, getUserTweets, updateTweet, deleteTweet };

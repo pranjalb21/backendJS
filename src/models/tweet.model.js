@@ -12,7 +12,7 @@ const tweetSchema = mongoose.Schema(
         },
     },
     {
-        timeStamps: true,
+        timestamps: true,
     }
 );
 const Tweet = mongoose.model("Tweet", tweetSchema);

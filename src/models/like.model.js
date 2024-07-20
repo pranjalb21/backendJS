@@ -20,7 +20,7 @@ const likeSchema = mongoose.Schema(
         },
     },
     {
-        timeStamps: true,
+        timestamps: true,
     }
 );
 const Like = mongoose.model("Like", likeSchema);
