@@ -69,7 +69,10 @@ const getUserVideos = asyncHandler(async (req, res) => {
     const { page = 1, query, sortBy, sortType, user } = req.query;
     //TODO: get all videos based on query, sort, pagination
     if (!mongoose.isValidObjectId(user))
-        throw new ApiError(400, "User not found.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "User not found."));
+    //throw new ApiError(400, "User not found.");
 
     //* Aggregate query for video list
     const pipeline = [
@@ -130,23 +133,38 @@ const postAVideo = asyncHandler(async (req, res) => {
     //* Sanity check of title and description
     const { title, description } = req.body;
     if (!title || !description)
-        throw new ApiError(400, "All fields are required.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+    //throw new ApiError(400, "All fields are required.");
 
     //* Get the uploaded file local path and perform sanity check
     const videoLocalFilePath = req.files?.video[0].path;
     const thumbnailLocalPath = req.files?.thumbnail[0].path;
     if (!videoLocalFilePath || !thumbnailLocalPath)
-        throw new ApiError(400, "All fields are required.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+    //throw new ApiError(400, "All fields are required.");
 
     //* Upload the files into cloudinary and check if upload was successfull
     const video = await uploadOnCloudinary(videoLocalFilePath);
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
     if (!video || !thumbnail)
-        throw new ApiError(
-            400,
-            "Something went wrong while uploading the file."
-        );
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Something went wrong while uploading the file."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "Something went wrong while uploading the file."
+    // );
 
     //* Create new video object and upload into Database
     const newVideo = {
@@ -160,10 +178,19 @@ const postAVideo = asyncHandler(async (req, res) => {
     };
     const result = await Video.create(newVideo);
     if (!result)
-        throw new ApiError(
-            400,
-            "Something went wrong while posting the video."
-        );
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Something went wrong while posting the video."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "Something went wrong while posting the video."
+    // );
 
     return res
         .status(201)
@@ -177,7 +204,12 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     //* Sanity check
     const isVideoIdValid = mongoose.isValidObjectId(videoId);
-    if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
+    if (!isVideoIdValid)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+
+    //  throw new ApiError(400, "Video not found.");
 
     const video = await Video.aggregate([
         {
@@ -211,7 +243,11 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
         { $project: { ownerField: 0 } },
     ]);
-    if (!video) throw new ApiError(400, "Video not found.");
+    if (!video)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+    //throw new ApiError(400, "Video not found.");
 
     return res
         .status(200)
@@ -230,9 +266,16 @@ const updateVideo = asyncHandler(async (req, res) => {
     //* Sanity check
     const { title, description } = req.body;
     if (!title || !description)
-        throw new ApiError(400, "All fields are required.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+    //throw new ApiError(400, "All fields are required.");
     const isVideoIdValid = mongoose.isValidObjectId(videoId);
-    if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
+    if (!isVideoIdValid)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+    //throw new ApiError(400, "Video not found.");
 
     const thumbnailLocalPath = req.file?.path;
     let thumbnailUpload = null;
@@ -242,7 +285,11 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     //* Check if video exists
     const videoDetails = await Video.findById(videoId);
-    if (!videoDetails) throw new ApiError(400, "Video not found.");
+    if (!videoDetails)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+    //throw new ApiError(400, "Video not found.");
 
     const newVideoDetails = await Video.findByIdAndUpdate(
         videoId,
@@ -300,15 +347,26 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     //* Sanity check
     const isVideoIdValid = mongoose.isValidObjectId(videoId);
-    if (!isVideoIdValid) throw new ApiError(400, "Video not found.");
+    if (!isVideoIdValid)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+        //throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
     const video = await Video.findById(videoId);
-    if (!video) throw new ApiError(400, "Video not found.");
+    if (!video)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+        //throw new ApiError(400, "Video not found.");
 
     //* Check if current user is the owner of the video
     if (!video.owner.equals(req.user?._id))
-        throw new ApiError(401, "User unuthorized.");
+        return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "User unuthorized."));
+        //throw new ApiError(401, "User unuthorized.");
 
     //* Toggle the isPublished value and save the info in database
     video.isPublished = !video.isPublished;
@@ -330,10 +388,17 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 const addView = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     if (!mongoose.isValidObjectId(videoId))
-        throw new ApiError(400, "Video not found.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+    //throw new ApiError(400, "Video not found.");
 
     const video = await Video.findById(videoId);
-    if (!video) throw new ApiError(400, "Video not found.");
+    if (!video)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+        //throw new ApiError(400, "Video not found.");
     video.views = video.views + 1;
     await video.save();
     return res

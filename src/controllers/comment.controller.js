@@ -11,11 +11,18 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     const { page = 1, limit = 10 } = req.query;
 
-    if (!mongoose.isValidObjectId(videoId))
-        throw new ApiError(400, "Video not found.");
+    if (!mongoose.isValidObjectId(videoId)){
+        return res
+            .status(401)
+            .json(new ApiResponse(400, {}, "Video not found."));
+    }
 
     const video = await Video.findById(videoId);
-    if (!video) throw new ApiError(400, "Video not found.");
+    if (!video){
+        return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "Video not found."));
+    }
 });
 
 const addComment = asyncHandler(async (req, res) => {

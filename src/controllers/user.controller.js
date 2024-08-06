@@ -24,7 +24,16 @@ const generateAccessAndRefreshToken = async (userId) => {
 
         return { accessToken, refreshToken };
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating token.");
+        return res
+            .status(500)
+            .json(
+                new ApiResponse(
+                    500,
+                    {},
+                    "Something went wrong while generating token."
+                )
+            );
+        //throw new ApiError(500, "Something went wrong while generating token.");
     }
 };
 
@@ -39,7 +48,10 @@ const registerUser = asyncHandler(async (req, res) => {
             (field) => field?.trim() === "" || field === undefined
         )
     ) {
-        throw new ApiError(400, "All fields are required.");
+        return res
+            .status(401)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+        //throw new ApiError(400, "All fields are required.");
     }
 
     //* validation for existing user
@@ -47,7 +59,12 @@ const registerUser = asyncHandler(async (req, res) => {
         $or: [{ userName }, { email }],
     });
     if (userExists) {
-        throw new ApiError(409, "Username or Email already exists.");
+        return res
+            .status(409)
+            .json(
+                new ApiResponse(409, {}, "Username or Email already exists.")
+            );
+        //throw new ApiError(409, "Username or Email already exists.");
     }
     //* validation for user image and avatar
     const avatarLocalPath =
@@ -57,12 +74,20 @@ const registerUser = asyncHandler(async (req, res) => {
             ? null
             : req.files?.coverImage[0]?.path;
 
-    if (!avatarLocalPath) throw new ApiError(400, "Avatar image is required.");
+    if (!avatarLocalPath)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Avatar image is required."));
+    //throw new ApiError(400, "Avatar image is required.");
 
     //* upload image and avatar into cloudinary
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
-    if (!avatar) throw new ApiError(400, "Avatar image is required...");
+    if (!avatar)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Avatar image is required."));
+    //throw new ApiError(400, "Avatar image is required...");
 
     //* create user object with all the inputs including image link from cloudinary
     const userData = {
@@ -84,7 +109,16 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //* check for user creation
     if (!createdUser)
-        throw new ApiError(500, "Something went wrong while registration.");
+        return res
+            .status(500)
+            .json(
+                new ApiResponse(
+                    500,
+                    {},
+                    "Something went wrong while registration."
+                )
+            );
+    //throw new ApiError(500, "Something went wrong while registration.");
 
     //* send the response
     return res
@@ -96,21 +130,34 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     //* Destructure the username and the password from req body
-    const { userName, email, password } = req.body;
+    const { userNameOrEmail, password } = req.body;
 
     //console.log(userName, email, password);
 
     //* Validate if inputs are non empty
-    if (!(userName || email) || !password) {
-        throw new ApiError(400, "All fields are required.");
+    if (!userNameOrEmail || !password) {
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+        //throw new ApiError(400, "All fields are required.");
     }
     //* Check if user exists in database or not
-    const user = await User.findOne({ $or: [{ userName }, { email }] });
-    if (!user) throw new ApiError(404, `User doesn't exist.`);
+    const user = await User.findOne({
+        $or: [{ userName: userNameOrEmail }, { email: userNameOrEmail }],
+    });
+    if (!user)
+        return res
+            .status(404)
+            .json(new ApiResponse(404, {}, "User doesn't exist."));
+    //throw new ApiError(404, `User doesn't exist.`);
 
     //* Validate if the password matches with the user name stored in the database
     const isPasswordValid = await user.isPasswordValid(password.toString());
-    if (!isPasswordValid) throw new ApiError(401, "Invalid credentials. ");
+    if (!isPasswordValid)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Invalid credentials."));
+    //throw new ApiError(401, "Invalid credentials. ");
 
     //* Generate tokens using generateAccessAndRefreshToken function
     const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
@@ -169,7 +216,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         //* Get refresh toke from cookies or body and sanity check
         const incomingRefreshToken =
             req.cookies?.refreshToken || req.body.refreshToken;
-        if (!incomingRefreshToken) throw new ApiError(401, "Token not found.");
+        if (!incomingRefreshToken) 
+            return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "Token not found."));
+            //throw new ApiError(401, "Token not found.");
 
         //* Verify if token is valid or not
         const decodedToken = await jwt.verify(
@@ -177,9 +228,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             process.env.REFRESH_TOKEN_SECRET
         );
         const user = await User.findById(decodedToken?._id).select("-password");
-        if (!user) throw new ApiError(401, "Invalid refresh token.");
+        if (!user)
+            return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "Invalid refresh token."));
+        //throw new ApiError(401, "Invalid refresh token.");
         if (user.refreshToken !== incomingRefreshToken)
-            throw new ApiError(401, "Invalid token.");
+            return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "Invalid token."));
+        //throw new ApiError(401, "Invalid token.");
 
         //* Generate new tokens
         const { accessToken, refreshToken } =
@@ -205,7 +263,10 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                 )
             );
     } catch (error) {
-        throw new ApiError(400, "Invalid token.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Invalid token."));
+        //throw new ApiError(400, "Invalid token.");
     }
 });
 
@@ -219,31 +280,41 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         newPassword === undefined ||
         confirmPassword === undefined
     )
-        throw new ApiError(400, "All fields are required.");
+    return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+        //throw new ApiError(400, "All fields are required.");
 
     if (
         newPassword.length < process.env.PASSWORD_LENGTH ||
         confirmPassword.length < process.env.PASSWORD_LENGTH ||
         oldPassword.length < process.env.PASSWORD_LENGTH
     )
-        throw new ApiError(
-            400,
-            "Password length should be minimum 5 characters."
-        );
+    return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Password length should be minimum 5 characters."));
+        //throw new ApiError(400,"Password length should be minimum 5 characters.");
 
     //* Validate if new password and the confirm password are same or not
     if (newPassword !== confirmPassword)
-        throw new ApiError(
-            400,
-            "New password and confirm password do not match."
-        );
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "New password and confirm password do not match."));
+        // throw new ApiError(
+        //     400,
+        //     "New password and confirm password do not match."
+        // );
 
     //* Fetch user details from req user attribute(Added by auth middleware)
     const user = await User.findById(req.user?._id);
 
     //* Check if old password and the password of user is same or not
     const isPasswordValid = await user.isPasswordValid(oldPassword);
-    if (!isPasswordValid) throw new ApiError(400, "Old password is not valid.");
+    if (!isPasswordValid) 
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Old password is not valid."));
+        //throw new ApiError(400, "Old password is not valid.");
 
     //* Update new password into database
     user.password = newPassword;
@@ -271,7 +342,10 @@ const updateUserAccount = asyncHandler(async (req, res) => {
 
     //* Check if all fields are provided
     if (!fullName || !email) {
-        throw new ApiError(400, "All fields are required.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "All fields are required."));
+        //throw new ApiError(400, "All fields are required.");
     }
 
     //* Check if email already exists or not
@@ -305,15 +379,21 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
     //* Check if any image is provided or not
     if (!avatarLocalPath)
-        throw new ApiError(400, "Please provide an avatar image.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Please provide an avatar image."));
+        //throw new ApiError(400, "Please provide an avatar image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     if (!avatar.url)
-        throw new ApiError(
-            400,
-            "Something went wrong while avatar file upload."
-        );
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Something went wrong while avatar file upload."));
+        // throw new ApiError(
+        //     400,
+        //     "Something went wrong while avatar file upload."
+        // );
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
@@ -342,15 +422,21 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
 
     //* Check if any image is provided or not
     if (!coverImageLocalPath)
-        throw new ApiError(400, "Please provide a cover image.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Please provide a cover image."));
+        //throw new ApiError(400, "Please provide a cover image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if (!coverImage.url)
-        throw new ApiError(
-            400,
-            "Something went wrong while cover image upload."
-        );
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Something went wrong while cover image upload."));
+        // throw new ApiError(
+        //     400,
+        //     "Something went wrong while cover image upload."
+        // );
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
@@ -381,7 +467,10 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     //* Get channel name from request params attribute
     const { username } = req.params;
     if (username === undefined || !username.trim())
-        throw new ApiError(400, "No channel found.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "No channel found."));
+        // throw new ApiError(400, "No channel found.");
 
     //* Get subscriber, subscribedTo, isSubscribed and
     //* rest of the required value from Database using Aggregate function
@@ -439,7 +528,11 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     ]);
 
     //* Check if Channel data is found or not
-    if (!channel) throw new ApiError(404, "No channel found.");
+    if (!channel)
+        return res
+            .status(404)
+            .json(new ApiResponse(404, {}, "No channel found."));
+        //throw new ApiError(404, "No channel found.");
 
     return res
         .status(200)
@@ -510,16 +603,26 @@ const addWatchHistory = asyncHandler(async (req, res) => {
     //* Get video id from req params attribute and perform sanity check
     const { videoId } = req.params;
     if (!mongoose.isValidObjectId(videoId))
-        throw new ApiError(400, "Video not found.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+        //throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
     const video = await Video.findById(videoId);
-    if (!video) throw new ApiError(400, "Video not found.");
+    if (!video)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video not found."));
+        //throw new ApiError(400, "Video not found.");
 
     //* Check if video already exists in user watch history or not
     const user = await User.findById(req.user?._id);
     if (user.watchHistory.includes(videoId))
-        throw new ApiError(400, "Video already present in watch history.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Video already present in watch history."));
+        //throw new ApiError(400, "Video already present in watch history.");
 
     //* Push video id into user watch history
     user.watchHistory.push(video._id);
