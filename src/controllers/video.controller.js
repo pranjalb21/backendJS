@@ -46,11 +46,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 ownerDetails: 0,
             },
         },
-        {
-            $sort: {
-                createdAt: "-1",
-            },
-        },
     ];
 
     //* Option to limit the number of result per page
@@ -351,7 +346,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Video not found."));
-        //throw new ApiError(400, "Video not found.");
+    //throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
     const video = await Video.findById(videoId);
@@ -359,14 +354,14 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Video not found."));
-        //throw new ApiError(400, "Video not found.");
+    //throw new ApiError(400, "Video not found.");
 
     //* Check if current user is the owner of the video
     if (!video.owner.equals(req.user?._id))
         return res
             .status(401)
             .json(new ApiResponse(401, {}, "User unuthorized."));
-        //throw new ApiError(401, "User unuthorized.");
+    //throw new ApiError(401, "User unuthorized.");
 
     //* Toggle the isPublished value and save the info in database
     video.isPublished = !video.isPublished;
@@ -398,7 +393,7 @@ const addView = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Video not found."));
-        //throw new ApiError(400, "Video not found.");
+    //throw new ApiError(400, "Video not found.");
     video.views = video.views + 1;
     await video.save();
     return res

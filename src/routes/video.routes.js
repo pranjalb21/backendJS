@@ -19,7 +19,7 @@ router
     .use(verifyJwt)
     .get("/all", getAllVideos)
     .get("/:videoId", getVideoById)
-    .get("/user/:user",getUserVideos)
+    .get("/user/:user", getUserVideos)
 
     .post(
         "/add",
