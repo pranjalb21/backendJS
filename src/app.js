@@ -4,9 +4,10 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-app.use(
-    cors()
-);
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials:true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
@@ -17,7 +18,7 @@ import userRouter from "./routes/user.routes.js";
 import subscribeRouter from "./routes/subscribe.routes.js";
 import videoRouter from "./routes/video.routes.js";
 import likeRouter from "./routes/like.routes.js";
-import tweetRouter from "./routes/tweet.routes.js"
+import tweetRouter from "./routes/tweet.routes.js";
 
 //* Routes declare
 app.use("/api/v1/users", userRouter);

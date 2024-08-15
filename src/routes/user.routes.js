@@ -35,16 +35,14 @@ router
         registerUser
     )
     .post("/login", loginUser)
+    .post("/generate-token", refreshAccessToken)
 
-    .post("/refresh-token", refreshAccessToken)
-
+    .get("/current", getCurrentUser)
     //? Secured routes
-    .get("/current", verifyJwt, getCurrentUser)
     .get("/channels/:username", verifyJwt, getUserChannelProfile)
     .get("/watch-history", verifyJwt, getUserWatchHistory)
 
     .post("/logout", verifyJwt, logoutUser)
-    .post("/generate-token", refreshAccessToken)
 
     .patch("/update/password", verifyJwt, changeCurrentPassword)
     .patch("/update/account", verifyJwt, updateUserAccount)

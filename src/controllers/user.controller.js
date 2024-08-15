@@ -67,6 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
         //throw new ApiError(409, "Username or Email already exists.");
     }
     //* validation for user image and avatar
+
     const avatarLocalPath =
         req.files.avatar === undefined ? null : req.files?.avatar[0].path;
     const coverImageLocalPath =
@@ -102,6 +103,10 @@ const registerUser = asyncHandler(async (req, res) => {
     //* push the user object into database
     const user = await User.create(userData);
 
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+        user._id
+    );
+
     //* remove the password and the refresh token from database upload result
     const createdUser = await User.findOne(user._id).select(
         "-password -refreshToken"
@@ -120,11 +125,21 @@ const registerUser = asyncHandler(async (req, res) => {
             );
     //throw new ApiError(500, "Something went wrong while registration.");
 
+    const options = {
+        httpOnly: true,
+        secure: true,
+    };
     //* send the response
     return res
         .status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(
-            new ApiResponse(200, createdUser, "User Registered Successfully.")
+            new ApiResponse(
+                200,
+                { user: createdUser, token: accessToken },
+                "Registration Successfull."
+            )
         );
 });
 
@@ -180,7 +195,7 @@ const loginUser = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                { user: loggedInUser, accessToken },
+                { user: loggedInUser, accessToken: accessToken },
                 "Login successful"
             )
         );
@@ -208,19 +223,20 @@ const logoutUser = asyncHandler(async (req, res) => {
         .status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
-        .json(new ApiResponse(200, "Logout successfull."));
+        .json(new ApiResponse(200, {}, "Logout successfull."));
 });
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
+        console.log("error refresh");
+        
         //* Get refresh toke from cookies or body and sanity check
-        const incomingRefreshToken =
-            req.cookies?.refreshToken || req.body.refreshToken;
-        if (!incomingRefreshToken) 
+        const incomingRefreshToken = req.cookies?.refreshToken;
+        if (!incomingRefreshToken)
             return res
-            .status(401)
-            .json(new ApiResponse(401, {}, "Token not found."));
-            //throw new ApiError(401, "Token not found.");
+                .status(401)
+                .json(new ApiResponse(401, {}, "Token not found in cookie."));
+        //throw new ApiError(401, "Token not found.");
 
         //* Verify if token is valid or not
         const decodedToken = await jwt.verify(
@@ -230,13 +246,13 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const user = await User.findById(decodedToken?._id).select("-password");
         if (!user)
             return res
-            .status(401)
-            .json(new ApiResponse(401, {}, "Invalid refresh token."));
+                .status(401)
+                .json(new ApiResponse(401, {}, "Invalid refresh token."));
         //throw new ApiError(401, "Invalid refresh token.");
         if (user.refreshToken !== incomingRefreshToken)
             return res
-            .status(401)
-            .json(new ApiResponse(401, {}, "Invalid token."));
+                .status(401)
+                .json(new ApiResponse(401, {}, "Invalid token."));
         //throw new ApiError(401, "Invalid token.");
 
         //* Generate new tokens
@@ -258,14 +274,12 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             .json(
                 new ApiResponse(
                     200,
-                    { newUser, accessToken },
+                    { user: newUser, accessToken },
                     "Access token refreshed"
                 )
             );
     } catch (error) {
-        return res
-            .status(400)
-            .json(new ApiResponse(400, {}, "Invalid token."));
+        return res.status(400).json(new ApiResponse(400, {}, "Invalid token."));
         //throw new ApiError(400, "Invalid token.");
     }
 });
@@ -280,41 +294,53 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
         newPassword === undefined ||
         confirmPassword === undefined
     )
-    return res
+        return res
             .status(400)
             .json(new ApiResponse(400, {}, "All fields are required."));
-        //throw new ApiError(400, "All fields are required.");
+    //throw new ApiError(400, "All fields are required.");
 
     if (
         newPassword.length < process.env.PASSWORD_LENGTH ||
         confirmPassword.length < process.env.PASSWORD_LENGTH ||
         oldPassword.length < process.env.PASSWORD_LENGTH
     )
-    return res
+        return res
             .status(400)
-            .json(new ApiResponse(400, {}, "Password length should be minimum 5 characters."));
-        //throw new ApiError(400,"Password length should be minimum 5 characters.");
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Password length should be minimum 5 characters."
+                )
+            );
+    //throw new ApiError(400,"Password length should be minimum 5 characters.");
 
     //* Validate if new password and the confirm password are same or not
     if (newPassword !== confirmPassword)
         return res
             .status(400)
-            .json(new ApiResponse(400, {}, "New password and confirm password do not match."));
-        // throw new ApiError(
-        //     400,
-        //     "New password and confirm password do not match."
-        // );
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "New password and confirm password do not match."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "New password and confirm password do not match."
+    // );
 
     //* Fetch user details from req user attribute(Added by auth middleware)
     const user = await User.findById(req.user?._id);
 
     //* Check if old password and the password of user is same or not
     const isPasswordValid = await user.isPasswordValid(oldPassword);
-    if (!isPasswordValid) 
+    if (!isPasswordValid)
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Old password is not valid."));
-        //throw new ApiError(400, "Old password is not valid.");
+    //throw new ApiError(400, "Old password is not valid.");
 
     //* Update new password into database
     user.password = newPassword;
@@ -329,10 +355,33 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 
 const getCurrentUser = asyncHandler(async (req, res) => {
     //* Get user id from req user attribute
+    const incomingAccessToken = req.cookies?.accessToken;
+    console.log("current");
+    
+    if (!incomingAccessToken) {
+        return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "User not authorised."));
+    }
+    const decodedToken = await jwt.verify(
+        incomingAccessToken,
+        process.env.ACCESS_TOKEN_SECRET
+    );
+    if(!decodedToken){
+        return res
+            .status(401)
+            .json(new ApiResponse(401, {}, "Invalid token."));
+    }
+    const user = await User.findById(decodedToken._id).select("-password -refreshToken")
+    if(!user){
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "User not found."));
+    }
     return res
         .status(200)
         .json(
-            new ApiResponse(200, req.user, "Current user fetched successfully.")
+            new ApiResponse(200, user, "Current user fetched successfully.")
         );
 });
 
@@ -382,18 +431,24 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Please provide an avatar image."));
-        //throw new ApiError(400, "Please provide an avatar image.");
+    //throw new ApiError(400, "Please provide an avatar image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
     const avatar = await uploadOnCloudinary(avatarLocalPath);
     if (!avatar.url)
         return res
             .status(400)
-            .json(new ApiResponse(400, {}, "Something went wrong while avatar file upload."));
-        // throw new ApiError(
-        //     400,
-        //     "Something went wrong while avatar file upload."
-        // );
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Something went wrong while avatar file upload."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "Something went wrong while avatar file upload."
+    // );
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
@@ -425,18 +480,24 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Please provide a cover image."));
-        //throw new ApiError(400, "Please provide a cover image.");
+    //throw new ApiError(400, "Please provide a cover image.");
 
     //* Upload image on cloudinary and check if url is returned upon completion
     const coverImage = await uploadOnCloudinary(coverImageLocalPath);
     if (!coverImage.url)
         return res
             .status(400)
-            .json(new ApiResponse(400, {}, "Something went wrong while cover image upload."));
-        // throw new ApiError(
-        //     400,
-        //     "Something went wrong while cover image upload."
-        // );
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Something went wrong while cover image upload."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "Something went wrong while cover image upload."
+    // );
 
     //* Delete current cover image from cloudinary
     const deleteUserCoverImage = await User.findById(req.user?._id);
@@ -470,7 +531,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "No channel found."));
-        // throw new ApiError(400, "No channel found.");
+    // throw new ApiError(400, "No channel found.");
 
     //* Get subscriber, subscribedTo, isSubscribed and
     //* rest of the required value from Database using Aggregate function
@@ -532,7 +593,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         return res
             .status(404)
             .json(new ApiResponse(404, {}, "No channel found."));
-        //throw new ApiError(404, "No channel found.");
+    //throw new ApiError(404, "No channel found.");
 
     return res
         .status(200)
@@ -606,7 +667,7 @@ const addWatchHistory = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Video not found."));
-        //throw new ApiError(400, "Video not found.");
+    //throw new ApiError(400, "Video not found.");
 
     //* Check if video exists or not
     const video = await Video.findById(videoId);
@@ -614,15 +675,21 @@ const addWatchHistory = asyncHandler(async (req, res) => {
         return res
             .status(400)
             .json(new ApiResponse(400, {}, "Video not found."));
-        //throw new ApiError(400, "Video not found.");
+    //throw new ApiError(400, "Video not found.");
 
     //* Check if video already exists in user watch history or not
     const user = await User.findById(req.user?._id);
     if (user.watchHistory.includes(videoId))
         return res
             .status(400)
-            .json(new ApiResponse(400, {}, "Video already present in watch history."));
-        //throw new ApiError(400, "Video already present in watch history.");
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Video already present in watch history."
+                )
+            );
+    //throw new ApiError(400, "Video already present in watch history.");
 
     //* Push video id into user watch history
     user.watchHistory.push(video._id);

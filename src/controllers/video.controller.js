@@ -35,15 +35,34 @@ const getAllVideos = asyncHandler(async (req, res) => {
             },
         },
         {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes",
+            },
+        },
+        {
             $addFields: {
                 owner: {
                     $first: "$ownerDetails",
+                },
+                likesCount: {
+                    $size: "$likes",
+                },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likes.likedBy"] },
+                        then: true,
+                        else: false,
+                    },
                 },
             },
         },
         {
             $project: {
                 ownerDetails: 0,
+                likes: 0,
             },
         },
     ];
@@ -61,7 +80,8 @@ const getAllVideos = asyncHandler(async (req, res) => {
 });
 
 const getUserVideos = asyncHandler(async (req, res) => {
-    const { page = 1, query, sortBy, sortType, user } = req.query;
+    const { page = 1, query, sortBy, sortType } = req.query;
+    const { user } = req.params;
     //TODO: get all videos based on query, sort, pagination
     if (!mongoose.isValidObjectId(user))
         return res
@@ -104,12 +124,7 @@ const getUserVideos = asyncHandler(async (req, res) => {
             $project: {
                 ownerDetails: 0,
             },
-        },
-        {
-            $sort: {
-                createdAt: "-1",
-            },
-        },
+        }
     ];
 
     //* Option to limit the number of result per page
@@ -224,9 +239,18 @@ const getVideoById = asyncHandler(async (req, res) => {
                             _id: 1,
                             userName: 1,
                             fullName: 1,
+                            avatar: 1,
                         },
                     },
                 ],
+            },
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes",
             },
         },
         {
@@ -234,9 +258,19 @@ const getVideoById = asyncHandler(async (req, res) => {
                 owner: {
                     $first: "$ownerField",
                 },
+                likesCount: {
+                    $size: "$likes",
+                },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$likes.likedBy"] },
+                        then: true,
+                        else: false,
+                    },
+                },
             },
         },
-        { $project: { ownerField: 0 } },
+        { $project: { ownerField: 0, likes: 0 } },
     ]);
     if (!video)
         return res

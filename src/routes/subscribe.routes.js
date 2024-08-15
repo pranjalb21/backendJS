@@ -15,7 +15,7 @@ router
     .use(verifyJwt)
     .post("/add", subscribeChannel)
     .post("/delete", unsubscribeChannel)
-    .post("/subscribe/:channelId", toggleSubscription)
+    .post("/toggle-subscribe/:channelId", toggleSubscription)
     .get("/subscribers/:channelId", getUserChannelSubscribers)
     .get("/subscribed/:subscriberId", getSubscribedChannels);
 

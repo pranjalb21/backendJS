@@ -7,9 +7,12 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const subscribeChannel = asyncHandler(async (req, res) => {
     //* Get channel id from request body attribute and perform sanity check
-    const { channel } = req.body;
-    if (channel === undefined || !channel)
-        throw new ApiError(404, "Channel not found.");
+    const { channel } = req.params;
+    if (!mongoose.isValidObjectId(channel))
+        return res
+            .status(404)
+            .json(new ApiResponse(404, {}, "Channel not found."));
+    //throw new ApiError(404, "Channel not found.");
 
     //* Check if user is already subscribed to this channel or not
     const checkIfSubscribed = await Subscription.find({
@@ -17,7 +20,10 @@ const subscribeChannel = asyncHandler(async (req, res) => {
         subscriber: req.user?._id,
     });
     if (checkIfSubscribed.length > 0)
-        throw new ApiError(400, "Already subscribed.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Already subscribed."));
+    //throw new ApiError(400, "Already subscribed.");
 
     //* Insert a new record of subscription
     const result = await Subscription.create({
@@ -27,34 +33,55 @@ const subscribeChannel = asyncHandler(async (req, res) => {
 
     //* Check if subscription is successfull or not
     if (!result)
-        throw new ApiError(
-            400,
-            "Subscription not successful. Please try again."
-        );
+        return res
+            .status(400)
+            .json(
+                new ApiResponse(
+                    400,
+                    {},
+                    "Subscription not successful. Please try again."
+                )
+            );
+    // throw new ApiError(
+    //     400,
+    //     "Subscription not successful. Please try again."
+    // );
 
     return res
         .status(200)
         .json(new ApiResponse(200, result, "Subscribed successfully."));
 });
 
+
 const unsubscribeChannel = asyncHandler(async (req, res) => {
     //* Get channel id from request body attribute and perform sanity check
     const { channel } = req.body;
     if (channel === undefined || !channel)
-        throw new ApiError(400, "No channel provided.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "No channel provided."));
+    //throw new ApiError(400, "No channel provided.");
 
     //* Check if user is already subscribed to this channel or not
     const isSubscribed = await Subscription.findOne({
         channel,
         subscriber: req.user?._id,
     });
-    if (!isSubscribed) throw new ApiError(400, "Channel is not subscribed.");
+    if (!isSubscribed)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Channel is not subscribed."));
+    //throw new ApiError(400, "Channel is not subscribed.");
 
     //* Delete subscribe document from Database
     const unsubscribeResult = await Subscription.findByIdAndDelete(
         isSubscribed._id
     );
-    if (!unsubscribeResult) throw new ApiError(400, "Channel not found.");
+    if (!unsubscribeResult)
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Channel not found."));
+    //throw new ApiError(400, "Channel not found.");
 
     return res
         .status(200)
@@ -72,13 +99,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
 
     //* Sanity check
-    if (channelId === undefined || !channelId)
-        throw new ApiError(400, "No channel found.");
-    try {
-        new mongoose.Types.ObjectId(channelId);
-    } catch (error) {
-        throw new ApiError(400, "Invalid channel.");
-    }
+    if (!mongoose.isValidObjectId(channelId))
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Channel not found."));
+    //throw new ApiError(400, "No channel found.");
 
     //* Check if user is subscribed
     const isSubscribed = await Subscription.findOne({
@@ -91,7 +116,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         const result = await Subscription.findByIdAndDelete(isSubscribed._id);
         return res
             .status(200)
-            .json(new ApiResponse(200, result, "Unubscribed successfully."));
+            .json(new ApiResponse(200, {}, "Unubscribed successfully."));
     } else {
         const result = await Subscription.create({
             channel: channelId,
@@ -99,7 +124,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         });
         return res
             .status(201)
-            .json(new ApiResponse(201, result, "Subscribed successfully."));
+            .json(new ApiResponse(201, {}, "Subscribed successfully."));
     }
 });
 
@@ -108,8 +133,11 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
 
     //* Sanity check
-    const isChannelIdValid = sanityCheck(channelId);
-    if (!isChannelIdValid) throw new ApiError(400, "No channel found.");
+    if (!mongoose.isValidObjectId(channelId))
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "No channel found."));
+    //throw new ApiError(400, "No channel found.");
 
     const subscribers = await Subscription.aggregate([
         {
@@ -171,7 +199,10 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     //* Sanity check
     const isSubscriberIdValid = sanityCheck(subscriberId);
     if (!isSubscriberIdValid) {
-        throw new ApiError(400, "User not found.");
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "User not found."));
+        //throw new ApiError(400, "User not found.");
     }
 
     //* Get all channels which user is subscribed
