@@ -65,6 +65,11 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 likes: 0,
             },
         },
+        {
+            $sort:{
+                createdAt:-1
+            }
+        }
     ];
 
     //* Option to limit the number of result per page
