@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const likeSchema = mongoose.Schema(
+const likeSchema = new mongoose.Schema(
     {
         video: {
             type: mongoose.Schema.Types.ObjectId,

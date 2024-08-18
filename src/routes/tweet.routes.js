@@ -19,6 +19,7 @@ router
     .get("/:tweetId", getTweetById)
 
     .post("/add", createTweet)
+
     .patch("/update/:tweetId", updateTweet)
 
     .delete("/delete/:tweetId", deleteTweet);

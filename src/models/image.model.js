@@ -1,21 +1,22 @@
 import mongoose from "mongoose";
 import aggregatePaginate from "mongoose-aggregate-paginate-v2";
-
-const tweetSchema = new mongoose.Schema(
+const imageSchema = new mongoose.Schema(
     {
+        image: {
+            type: String,
+            required: true,
+        },
         owner: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-        },
-        content: {
-            type: String,
-            required: true,
         },
     },
     {
         timestamps: true,
     }
 );
-tweetSchema.plugin(aggregatePaginate);
-const Tweet = mongoose.model("Tweet", tweetSchema);
-export default Tweet;
+
+imageSchema.plugin(aggregatePaginate);
+
+const Image = mongoose.model("Image", imageSchema);
+export default Image;

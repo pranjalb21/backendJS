@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
-const commentSchema = mongoose.Schema(
+const commentSchema = new mongoose.Schema(
     {
         content: {
             type: String,
