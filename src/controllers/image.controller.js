@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 import Image from "../models/image.model.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/Cloudinary.js";
+import {
+    deleteFromCloudinary,
+    uploadOnCloudinary,
+} from "../utils/Cloudinary.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import { getPublicId } from "./common.methods.js";
 
@@ -187,7 +190,7 @@ const updateImage = asyncHandler(async (req, res) => {
 
     //* Get new image from req file and validate if it exists.
     const imageLocalPath = req.file?.path;
-    
+
     if (!imageLocalPath)
         return res
             .status(400)
@@ -235,8 +238,7 @@ const deleteImage = asyncHandler(async (req, res) => {
             .json(new ApiResponse(400, {}, "Image not found."));
 
     //* Check if the requested user is the owner of the image
-    console.log(image);
-    
+
     if (!image.owner.equals(req.user?._id))
         return res
             .status(401)
