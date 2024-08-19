@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 import Like from "../models/like.model.js";
 import ApiError from "../utils/ApiError.js";
@@ -77,8 +77,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
     //* Get video Id and perform sanity check.
     const { tweetId } = req.params;
-    //TODO: toggle like on tweet
-    //TODO: toggle like on video
     if (!mongoose.isValidObjectId(tweetId))
         throw new ApiError(400, "Tweet not found.");
 
@@ -108,6 +106,41 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         );
 });
 
+const toggleImageLike = asyncHandler(async (req, res) => {
+    //* Get image id from req params and check if it's a valid mongoDB object or not
+    const { imageId } = req.params;
+    if (!mongoose.isValidObjectId(imageId))
+        return res
+            .status(400)
+            .json(new ApiResponse(400, {}, "Image not found"));
+
+    //* Find if any record exists in DB with the image ID
+    const like = await Like.findOne({ image: imageId, likedBy:req.user?._id });
+
+    //* If record exists then delete it
+    //* If the user liked then delete the record else add a new like record
+    let newLike = null;
+    let deleteLike = null;
+    if (!like) {
+        newLike = await Like.create({
+            image: imageId,
+            likedBy: req.user?._id,
+        });
+    } else {
+        deleteLike = await Like.findByIdAndDelete(like._id);
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                newLike ? "Liked successfully." : "Unliked successfully."
+            )
+        );
+});
+
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
     const likedVideos = await Like.find({
@@ -122,4 +155,4 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         );
 });
 
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
+export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos,toggleImageLike };

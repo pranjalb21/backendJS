@@ -6,6 +6,7 @@ import {
     toggleTweetLike,
     toggleCommentLike,
     getLikedVideos,
+    toggleImageLike,
 } from "../controllers/like.controller.js";
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router
     .get("/video", getLikedVideos)
     .post("/video/:videoId", toggleVideoLike)
     .post("/tweet/:tweetId", toggleTweetLike)
+    .post("/image/:imageId", toggleImageLike)
     .post("/comment/:commentId", toggleCommentLike);
 
 export default router;

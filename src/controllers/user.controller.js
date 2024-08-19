@@ -228,8 +228,6 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     try {
-        console.log("error refresh");
-        
         //* Get refresh toke from cookies or body and sanity check
         const incomingRefreshToken = req.cookies?.refreshToken;
         if (!incomingRefreshToken)
@@ -356,8 +354,7 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     //* Get user id from req user attribute
     const incomingAccessToken = req.cookies?.accessToken;
-    console.log("current");
-    
+
     if (!incomingAccessToken) {
         return res
             .status(401)

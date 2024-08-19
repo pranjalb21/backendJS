@@ -9,7 +9,6 @@ import asyncHandler from "../utils/asyncHandler.js";
 const createTweet = asyncHandler(async (req, res) => {
     //* Get tweet body from req body attribute and check if not empty
     const { content } = req.body;
-    console.log(content);
     if (!content)
         return res
             .status(400)
